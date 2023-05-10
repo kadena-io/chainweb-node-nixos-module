@@ -14,6 +14,8 @@
     std,
     self,
   }: {
-    nixosModules.chainweb-node = import ./module.nix std.lib;
+    nixosModules = {
+      chainweb-node = import ./modules/chainweb-node.nix std.lib;
+    };
   };
 }

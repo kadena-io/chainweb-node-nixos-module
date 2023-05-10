@@ -75,6 +75,64 @@ let
               else false;
           };
       in types.nonEmptyStr.check x && checkVersion;
+    };
+
+  mkConfigFile = logLevel: extraConfig: pkgs.writeText "${cfg.dataDir}/chainweb-node.config" (std.serde.toJSON {
+    logging = {
+      telemetryBackend = {
+        enabled = false;
+        configuration = {
+          handle = "stdout";
+          color = "auto";
+          format = "text";
+        };
+      };
+    };
+
+    backend = {
+      handle = "stdout";
+      color = "auto";
+      format = "text";
+    };
+
+    logger = {
+      log_level = logLevel;
+    };
+
+    filter = {
+      rules = [
+        { key = "component";
+          value = "cut-monitor";
+          level = "info";
+        }
+        { key = "component";
+          value = "pact";
+          level = "info";
+        }
+      ];
+      default = logLevel;
+    };
+
+    chainweb = extraConfig;
+  });
+
+  replayConfigFile = mkConfigFile "info" {
+    allowReadsInLocal = true;
+    headerStream = true;
+    onlySyncPact = true;
+    gasLog = true;
+    validateHashesOnReplay = true;
+    cuts = {
+      pruneChainDatabase = "headers-checked";
+    };
+    transactionIndex = {
+      enabled = false;
+    };
+    p2p = {
+      private = true;
+      ignoreBootstrapNodes = true;
+      bootstrapReachability = 0;
+    };
   };
 in
 {
@@ -96,14 +154,18 @@ in
       };
 
       configFile = mkOption {
-        type = types.either types.path (types.listOf types.path);
+        type = types.nullOr types.path;
         example = "chainweb-node.config.json";
+        default = null;
         description = lib.mdDoc ''
-          Configuration file in YAML or JSON format. If more than
-          a single config file option is present, files are loaded
-          in the order in which they appear on the command line.
+          Configuration file in YAML or JSON format.
         '';
       };
+
+      replay = mkEnableOption (lib.mdDoc ''
+        Run a replay, disregarding all customisation.
+        Runs as a one-shot service.
+      '');
 
       dataDir = mkOption {
         type = types.path;
@@ -201,10 +263,10 @@ in
       '');
 
       printConfigAs = mkOption {
-        type = types.enum [null "full" "minimal" "diff"];
+        type = types.nullOr (types.enum ["full" "minimal" "diff"]);
         default = null;
         description = lib.mdDoc ''
-          If non-null, print the parsed configuration to standard out and exit.
+          If non-null, print the parsed configuration to stdout and exit.
         '';
       };
     };
@@ -221,7 +283,7 @@ in
 
       preStart = ''
         if ! test -e ${cfg.dataDir}; then
-          mkdir -p ${cfg.dataDir}/mainnet01
+          mkdir -p ${cfg.dataDir}/${cfg.chainwebVersion}
         fi
       '';
 
@@ -233,10 +295,22 @@ in
           let
             sep = " \\\n  ";
             exe = "${cfg.package}/bin/chainweb-node";
+            arg = args: std.string.concatSep sep ([exe] ++ args);
+
           in
-          std.string.concatSep sep
+
+          if cfg.replay
+          then arg
             [
-              exe
+              "--config-file ${replayConfigFile}"
+              "--database-directory ${cfg.dataDir}/${cfg.chainwebVersion}"
+              (mkEnableFlag cfg.enableNodeMining "node-mining")
+              "--p2p-port ${toStr cfg.p2pPort}"
+              "--service-port ${toStr cfg.servicePort}"
+            ]
+          else arg
+            [
+              (mkIfNotNull cfg.configFile "config-file")
               (mkIfNotNull cfg.printConfigAs "print-config-as")
               "--database-directory ${cfg.dataDir}/${cfg.chainwebVersion}"
               (mkEnableFlag cfg.enableNodeMining "node-mining")
@@ -282,5 +356,7 @@ in
     environment.systemPackages = [
       cfg.package
     ];
+
+    networking.firewall.allowedTCPPorts = [ cfg.p2pPort ];
   };
 }
