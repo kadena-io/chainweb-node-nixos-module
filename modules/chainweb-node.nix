@@ -179,6 +179,15 @@ in
         '';
       };
 
+      subdir = mkOption {
+        type = types.nonEmptyStr;
+        default = "${cfg.chainwebVersion}";
+        example = "mainnet01";
+        description = lib.mdDoc ''
+          The subdirectory under `dataDir` for the data files of a particular chainwebVersion.
+        '';
+      };
+
       enableNodeMining = mkEnableOption (lib.mdDoc "Whether to enable node mining.");
 
       bootstrapReachability = mkOption {
@@ -283,7 +292,7 @@ in
 
       preStart = ''
         if ! test -e ${cfg.dataDir}; then
-          mkdir -p ${cfg.dataDir}/${cfg.chainwebVersion}
+          mkdir -p ${cfg.dataDir}/${cfg.subdir}
         fi
       '';
 
@@ -303,7 +312,7 @@ in
           then arg
             [
               "--config-file ${replayConfigFile}"
-              "--database-directory ${cfg.dataDir}/${cfg.chainwebVersion}"
+              "--database-directory ${cfg.dataDir}/${cfg.subdir}"
               (mkEnableFlag cfg.enableNodeMining "node-mining")
               "--p2p-port ${toStr cfg.p2pPort}"
               "--service-port ${toStr cfg.servicePort}"
@@ -312,7 +321,7 @@ in
             [
               (mkIfNotNull cfg.configFile "config-file")
               (mkIfNotNull cfg.printConfigAs "print-config-as")
-              "--database-directory ${cfg.dataDir}/${cfg.chainwebVersion}"
+              "--database-directory ${cfg.dataDir}/${cfg.subdir}"
               (mkEnableFlag cfg.enableNodeMining "node-mining")
               "--bootstrap-reachability ${toStr cfg.bootstrapReachability}"
               "--p2p-port ${toStr cfg.p2pPort}"
