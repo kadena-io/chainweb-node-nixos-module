@@ -210,7 +210,7 @@ in
 
       servicePort = mkOption {
         type = types.port;
-        default = 1849;
+        default = 1848;
         description = lib.mdDoc ''
           The port number for the Service API.
         '';
