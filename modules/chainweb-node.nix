@@ -121,7 +121,6 @@ let
     headerStream = true;
     onlySyncPact = true;
     gasLog = true;
-    validateHashesOnReplay = true;
     cuts = {
       pruneChainDatabase = "headers-checked";
     };
@@ -219,10 +218,6 @@ in
       onlySyncPact = mkEnableOption (lib.mdDoc ''
         Terminate after synchronizing the pact databases to
         the latest cut.
-      '');
-
-      validateHashesOnReplay = mkEnableOption (lib.mdDoc ''
-        Re-validate payload hashes during transaction replay.
       '');
 
       logLevel = mkOption {
@@ -327,7 +322,6 @@ in
               "--p2p-port ${toStr cfg.p2pPort}"
               "--service-port ${toStr cfg.servicePort}"
               (mkYesNoFlag cfg.onlySyncPact "only-sync-pact")
-              (mkYesNoFlag cfg.validateHashesOnReplay "validateHashesOnReplay")
               "--log-level ${cfg.logLevel}"
               "--log-format ${cfg.logFormat}"
               "--log-handle ${cfg.logHandle}"
