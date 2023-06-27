@@ -278,6 +278,10 @@ in
           If non-null, print the parsed configuration to stdout and exit.
         '';
       };
+
+      allowReadsInLocal = mkEnableOption (lib.mdDoc ''
+        Enable direct database reads of smart contract tables in local queries.
+      '');
     };
   };
 
@@ -334,6 +338,7 @@ in
               "--chainweb-version ${cfg.chainwebVersion}"
               (mkYesNoFlag cfg.headerStream "header-stream")
               (mkEnableFlag cfg.txReintroduction "tx-reintro")
+              (mkYesNoFlag cfg.allowReadsInLocal "allowReadsInLocal")
             ];
 
         ExecReload = ''
