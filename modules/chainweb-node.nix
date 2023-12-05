@@ -133,6 +133,24 @@ let
       bootstrapReachability = 0;
     };
   };
+
+  readOnlyConfigFile = mkConfigFile "info" {
+    allowReadsInLocal = true;
+    headerStream = true;
+    readOnlyReplay = true;
+    gasLog = true;
+    cuts = {
+      pruneChainDatabase = "headers-checked";
+    };
+    transactionIndex = {
+      enabled = false;
+    };
+    p2p = {
+      private = true;
+      ignoreBootstrapNodes = true;
+      bootstrapReachability = 0;
+    };
+  };
 in
 {
   ### Configuration
@@ -163,6 +181,11 @@ in
 
       replay = mkEnableOption (lib.mdDoc ''
         Run a replay, disregarding all customisation.
+        Runs as a one-shot service.
+      '');
+
+      readOnlyReplay = mkEnableOption (lib.mdDoc ''
+        Run a read-only replay, disregarding all customisation.
         Runs as a one-shot service.
       '');
 
@@ -307,6 +330,15 @@ in
           then arg
             [
               "--config-file ${replayConfigFile}"
+              "--database-directory ${cfg.dataDir}/${cfg.subdir}"
+              (mkEnableFlag cfg.enableNodeMining "node-mining")
+              "--p2p-port ${toStr cfg.p2pPort}"
+              "--service-port ${toStr cfg.servicePort}"
+            ]
+          else if cfg.readOnlyReplay
+          then arg
+            [
+              "--config-file ${readOnlyReplayConfigFile}"
               "--database-directory ${cfg.dataDir}/${cfg.subdir}"
               (mkEnableFlag cfg.enableNodeMining "node-mining")
               "--p2p-port ${toStr cfg.p2pPort}"
