@@ -244,32 +244,38 @@ in
       '');
 
       logLevel = mkOption {
-        type = types.enum ["quiet" "error" "warn" "info" "debug"];
+        type = types.nullOr (types.enum ["quiet" "error" "warn" "info" "debug"]);
         default = "info";
         description = lib.mdDoc ''
           Severity threshold for log messages.
+
+          `null` means to use whatever is in `configFile`.
         '';
       };
 
       logFormat = mkOption {
-        type = types.enum ["text" "json"];
+        type = types.nullOr (types.enum ["text" "json"]);
         default = "text";
         description = lib.mdDoc ''
           Format that is used for writing logs to file handles.
+
+          `null` means to use whatever is in `configFile`.
         '';
       };
 
       logHandle = mkOption {
-        type = types.oneOf
+        type = types.nullOr (types.oneOf
           [ (types.enum ["stdout" "stderr"])
             (strHasPrefix "file:")
             (strHasPrefix "es:")
-          ];
+          ]);
         default = "stderr";
         description = lib.mdDoc ''
           Handle where the logs are written.
 
           stdout|stderr|file:<FILENAME>|es:[APIKEY]:<URL>
+
+          `null` means to use whatever is in `configFile`.
         '';
       };
 
@@ -354,9 +360,9 @@ in
               "--p2p-port ${toStr cfg.p2pPort}"
               "--service-port ${toStr cfg.servicePort}"
               (mkYesNoFlag cfg.onlySyncPact "only-sync-pact")
-              "--log-level ${cfg.logLevel}"
-              "--log-format ${cfg.logFormat}"
-              "--log-handle ${cfg.logHandle}"
+              (mkIfNotNull cfg.logLevel "log-level")
+              (mkIfNotNull cfg.logFormat "log-format")
+              (mkIfNotNull cfg.logHandle "log-handle")
               "--chainweb-version ${cfg.chainwebVersion}"
               (mkYesNoFlag cfg.headerStream "header-stream")
               (mkEnableFlag cfg.txReintroduction "tx-reintro")
