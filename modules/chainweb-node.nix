@@ -134,7 +134,7 @@ let
     };
   };
 
-  readOnlyConfigFile = mkConfigFile "info" {
+  readOnlyReplayConfigFile = mkConfigFile "info" {
     allowReadsInLocal = true;
     headerStream = true;
     readOnlyReplay = true;
